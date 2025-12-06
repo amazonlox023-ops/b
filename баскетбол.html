@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; scroll-behavior:smooth; font-family:Poppins,sans-serif; }
+body { background:#0d0d0d; color:#fff; overflow-x:hidden; }
+
+header { position:relative; height:100vh; overflow:hidden; transition:background 0.8s ease; }
+.header-bg { position:absolute; top:0; left:0; width:100%; height:100%; transition:opacity 0.8s ease; }
+.header-content { position:relative; text-align:center; top:40%; transform:translateY(-50%); }
+.header-content h1 { font-size:4rem; color:#ff6600; text-shadow:0 0 20px #ff6600; }
+.header-content p { font-size:1.2rem; margin-top:10px; color:#eee; }
+.header-content a { display:inline-block; margin-top:30px; background:#ff6600; color:#fff; padding:12px 30px; border-radius:8px; text-decoration:none; font-weight:bold; transition:0.3s; }
+.header-content a:hover { background:#ff3300; }
+
+nav { position:sticky; top:0; background:rgba(0,0,0,0.9); padding:15px; text-align:center; z-index:10; }
+nav a { color:#ff6600; text-decoration:none; margin:0 20px; font-weight:600; transition:0.3s; }
+nav a:hover { color:#fff; }
+
+.teams-nav { background:rgba(20,20,20,0.95); padding:15px; text-align:center; position:sticky; top:60px; z-index:9; }
+.teams-nav button { background:#333; color:#fff; border:none; padding:8px 16px; margin:0 5px; border-radius:20px; cursor:pointer; transition:0.3s; font-weight:600; }
+.teams-nav button:hover { background:#555; }
+.teams-nav button.active { background:#ff6600; color:#fff; }
+
+section { max-width:1200px; margin:70px auto; padding:0 20px; }
+h2 { color:#ff6600; margin-bottom:20px; border-left:5px solid #ff6600; padding-left:10px; }
+
+/* Игроки */
+.players { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:25px; }
+.player { background:#1a1a1a; border-radius:12px; overflow:hidden; cursor:pointer; transition:0.3s; }
+.player:hover { transform:translateY(-6px); }
+.player img { width:100%; height:220px; object-fit:cover; }
+.player h3 { color:#ff6600; margin:15px; }
+.player p { color:#ccc; margin:0 15px 15px; }
+
+/* окна игроков */
+.modal-bg {
+  position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8);
+  display:flex; justify-content:center; align-items:center; opacity:0; visibility:hidden; transition:0.3s;
+  z-index:100;
+}
+.modal-bg.show { opacity:1; visibility:visible; }
+.modal {
+  background:#1a1a1a; width:90%; max-width:600px; padding:20px; border-radius:12px;
+  position:relative; max-height:90%; overflow-y:auto; transform:translateY(-50px); transition:transform 0.3s ease;
+}
+.modal-bg.show .modal { transform:translateY(0); }
+.close { position:absolute; top:10px; right:15px; font-size:26px; cursor:pointer; color:#ff6600; }
+.modal img { width:100%; border-radius:12px; margin-bottom:15px; }
+.modal h1 { color:#ff6600; margin-bottom:10px; }
+.modal h2 { color:#ff6600; margin-top:20px; }
+.modal p, .modal ul { color:#ccc; margin-bottom:10px; }
+
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th, td { border:1px solid #333; padding:12px; text-align:center; }
+th { background:#ff6600; color:white; }
+tr:nth-child(even) { background:#1a1a1a; }
+
+.news article { background:#1a1a1a; padding:20px; margin-bottom:20px; border-radius:12px; transition:0.3s; }
+.news article:hover { transform:translateX(5px); }
+.news h3 { color:#ff6600; }
+.news p { color:#ccc; }
+
+.video-container { position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:12px; }
+.video-container iframe { position:absolute; top:0; left:0; width:100%; height:100%; }
+
+footer { text-align:center; padding:30px; background:#111; color:#aaa; }
+
+#topBtn { position:fixed; bottom:30px; right:30px; background:#ff6600; color:white; border:none; padding:12px 15px; border-radius:50%; font-size:20px; cursor:pointer; display:none; transition:0.3s; }
+#topBtn:hover { background:#ff3300; }
+
+/* статистика, новости и видео */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:20px; }
+.stat-card { background:#1a1a1a; padding:20px; border-radius:12px; text-align:center; }
+.stat-card h3 { color:#ff6600; margin-bottom:10px; }
+.stat-card p { font-size:2rem; font-weight:bold; }
+
+.team-logo { width:30px; height:30px; display:inline-block; margin-right:10px; vertical-align:middle; }
+</style>
+</head>
+<body>
+
+
+<nav>
+  <a href="#players">Игроки</a>
+  <a href="#stats">Статистика</a>
+  <a href="#news">Новости</a>
+  <a href="#video">Видео</a>
+</nav>
+
+<div class="teams-nav">
+  <button class="team-btn active" data-team="all">Все команды</button>
+  <button class="team-btn" data-team="Bulls">Чикаго Буллз</button>
+  <button class="team-btn" data-team="Cavaliers">Кливленд Кавальерс</button>
+  <button class="team-btn" data-team="Pistons">Детройт Пистонс</button>
+  <button class="team-btn" data-team="Pacers">Индиана Пэйсерс</button>
+  <button class="team-btn" data-team="Bucks">Милуоки Бакс</button>
+  <button class="team-btn" data-team="Timberwolves">Миннесота Тимбервулвз</button>
+  <button class="team-btn" data-team="Jazz">Юта Джаз</button>
+  <button class="team-btn" data-team="Warriors">Голден Стэйт Уорриорз</button>
+  <button class="team-btn" data-team="Lakers">Лос-Анджелес Лейкерс</button>
+  <button class="team-btn" data-team="Thunder">Оклахома-Сити Тандер</button>
+</div>
+
+<main>
+  <section id="players">
+    <h2>Известные игроки NBA</h2>
+
+    <div class="players">
+      <!-- Чикаго Буллз -->
+      <div class="player" data-team="Bulls" onclick="openModal('derozan')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/201942.png">
+        <h3>Демар Дерозан</h3>
+        <p>Атакующий защитник</p>
+      </div>
+      <div class="player" data-team="Bulls" onclick="openModal('lavine')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203897.png">
+        <h3>Зак ЛаВайн</h3>
+        <p>Атакующий защитник</p>
+      </div>
+      <div class="player" data-team="Bulls" onclick="openModal('vucevic')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/202696.png">
+        <h3>Никола Вучевич</h3>
+        <p>Центровой</p>
+      </div>
+
+      <!-- Кливленд Кавальерс -->
+      <div class="player" data-team="Cavaliers" onclick="openModal('mitchell')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1628378.png">
+        <h3>Донован Митчелл</h3>
+        <p>Разыгрывающий защитник</p>
+      </div>
+      <div class="player" data-team="Cavaliers" onclick="openModal('garland')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1629636.png">
+        <h3>Дариус Гарленд</h3>
+        <p>Разыгрывающий защитник</p>
+      </div>
+      <div class="player" data-team="Cavaliers" onclick="openModal('mobley')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1630596.png">
+        <h3>Эван Мобли</h3>
+        <p>Тяжелый форвард / Центровой</p>
+      </div>
+
+      <!-- Детройт Пистонс -->
+      <div class="player" data-team="Pistons" onclick="openModal('cunningham')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1630595.png">
+        <h3>Кейд Каннингем</h3>
+        <p>Разыгрывающий защитник</p>
+      </div>
+      <div class="player" data-team="Pistons" onclick="openModal('ivey')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631093.png">
+        <h3>Джейден Айви</h3>
+        <p>Атакующий защитник</p>
+      </div>
+      <div class="player" data-team="Pistons" onclick="openModal('duren')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631105.png">
+        <h3>Джален Дьюрен</h3>
+        <p>Центровой</p>
+      </div>
+
+      <!-- Индиана Пэйсерс -->
+      <div class="player" data-team="Pacers" onclick="openModal('haliburton')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1630169.png">
+        <h3>Тайрис Халибертон</h3>
+        <p>Разыгрывающий защитник</p>
+      </div>
+      <div class="player" data-team="Pacers" onclick="openModal('turner')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1626167.png">
+        <h3>Майлз Тёрнер</h3>
+        <p>Центровой</p>
+      </div>
+      <div class="player" data-team="Pacers" onclick="openModal('mathurin')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631097.png">
+        <h3>Беннедикт Матюрин</h3>
+        <p>Атакующий защитник</p>
+      </div>
+
+      <!-- Милуоки Бакс -->
+      <div class="player" data-team="Bucks" onclick="openModal('antetokounmpo')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203507.png">
+        <h3>Яннис Адетокунбо</h3>
+        <p>Тяжелый форвард</p>
+      </div>
+      <div class="player" data-team="Bucks" onclick="openModal('lillard')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203081.png">
+        <h3>Дамиан Лиллард</h3>
+        <p>Разыгрывающий защитник</p>
+      </div>
+      <div class="player" data-team="Bucks" onclick="openModal('middleton')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203114.png">
+        <h3>Крис Миддлтон</h3>
+        <p>Лёгкий форвард</p>
+      </div>
+
+      <!-- Миннесота Тимбервулвз -->
+      <div class="player" data-team="Timberwolves" onclick="openModal('edwards')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1630162.png">
+        <h3>Энтони Эдвардс</h3>
+        <p>Атакующий защитник</p>
+      </div>
+      <div class="player" data-team="Timberwolves" onclick="openModal('towns')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1626157.png">
+        <h3>Карл-Энтони Таунс</h3>
+        <p>Центровой / Тяжелый форвард</p>
+      </div>
+      <div class="player" data-team="Timberwolves" onclick="openModal('gobert')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203497.png">
+        <h3>Руди Гобер</h3>
+        <p>Центровой</p>
+      </div>
+
+      <!-- Юта Джаз -->
+      <div class="player" data-team="Jazz" onclick="openModal('markkanen')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1628374.png">
+        <h3>Лаури Маркканен</h3>
+        <p>Тяжелый форвард</p>
+      </div>
+      <div class="player" data-team="Jazz" onclick="openModal('clarkson')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203903.png">
+        <h3>Джордан Кларксон</h3>
+        <p>Атакующий защитник</p>
+      </div>
+      <div class="player" data-team="Jazz" onclick="openModal('sexton')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1629012.png">
+        <h3>Коллин Секстон</h3>
+        <p>Разыгрывающий защитник</p>
+      </div>
+
+      <!-- Голден Стэйт Уорриорз -->
+      <div class="player" data-team="Warriors" onclick="openModal('curry')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/201939.png">
+        <h3>Стивен Карри</h3>
+        <p>Разыгрывающий защитник</p>
+      </div>
+      <div class="player" data-team="Warriors" onclick="openModal('thompson')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/202691.png">
+        <h3>Клей Томпсон</h3>
+        <p>Атакующий защитник</p>
+      </div>
+      <div class="player" data-team="Warriors" onclick="openModal('green')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203110.png">
+        <h3>Дрэймонд Грин</h3>
+        <p>Тяжелый форвард</p>
+      </div>
+
+      <!-- Лос-Анджелес Лейкерс -->
+      <div class="player" data-team="Lakers" onclick="openModal('james')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png">
+        <h3>Леброн Джеймс</h3>
+        <p>Лёгкий форвард / Атакующий защитник</p>
+      </div>
+      <div class="player" data-team="Lakers" onclick="openModal('davis')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203076.png">
+        <h3>Энтони Дэвис</h3>
+        <p>Центровой / Тяжелый форвард</p>
+      </div>
+      <div class="player" data-team="Lakers" onclick="openModal('russell')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1626156.png">
+        <h3>Д'Анджело Расселл</h3>
+        <p>Разыгрывающий защитник</p>
+      </div>
+
+      <!-- Оклахома-Сити Тандер -->
+      <div class="player" data-team="Thunder" onclick="openModal('gilgeous')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1628983.png">
+        <h3>Шей Гилджеус-Александр</h3>
+        <p>Разыгрывающий защитник</p>
+      </div>
+      <div class="player" data-team="Thunder" onclick="openModal('holmgren')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631096.png">
+        <h3>Чет Холмгрен</h3>
+        <p>Центровой</p>
+      </div>
+      <div class="player" data-team="Thunder" onclick="openModal('williams')">
+        <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631114.png">
+        <h3>Джейлен Уильямс</h3>
+        <p>Атакующий защитник</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- окна игроков -->
+  <!-- Чикаго Буллз -->
+  <div class="modal-bg" id="modal-derozan">
+    <div class="modal">
+      <span class="close" onclick="closeModal('derozan')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/201942.png">
+      <h1>Демар Дерозан</h1>
+      <p><strong>Команда:</strong> Чикаго Буллз</p>
+      <p><strong>Позиция:</strong> Атакующий защитник</p>
+      <p><strong>Рост:</strong> 198 см</p>
+      <p><strong>Вес:</strong> 100 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Демар Дерозан — американский профессиональный баскетболист, известный своей способностью забивать со средней дистанции и создавать свои броски. Был выбран под 9-м номером на драфте 2009 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>6-кратный участник Матча всех звёзд</li>
+        <li>Включён во вторую сборную всех звёзд (2018)</li>
+        <li>Олимпийский чемпион 2016 года</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-lavine">
+    <div class="modal">
+      <span class="close" onclick="closeModal('lavine')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203897.png">
+      <h1>Зак ЛаВайн</h1>
+      <p><strong>Команда:</strong> Чикаго Буллз</p>
+      <p><strong>Позиция:</strong> Атакующий защитник</p>
+      <p><strong>Рост:</strong> 196 см</p>
+      <p><strong>Вес:</strong> 91 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Зак ЛаВайн — американский профессиональный баскетболист, известный своими атлетическими способностями и точным трёхочковым броском. Двукратный победитель конкурса слэм-данков.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>2-кратный победитель конкурса слэм-данков (2015, 2016)</li>
+        <li>2-кратный участник Матча всех звёзд</li>
+        <li>Олимпийский чемпион 2020 года</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-vucevic">
+    <div class="modal">
+      <span class="close" onclick="closeModal('vucevic')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/202696.png">
+      <h1>Никола Вучевич</h1>
+      <p><strong>Команда:</strong> Чикаго Буллз</p>
+      <p><strong>Позиция:</strong> Центровой</p>
+      <p><strong>Рост:</strong> 211 см</p>
+      <p><strong>Вес:</strong> 118 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Никола Вучевич — черногорский профессиональный баскетболист, известный своей игрой в краске и точным броском со средней дистанции. Был выбран под 16-м номером на драфте 2011 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>2-кратный участник Матча всех звёзд</li>
+        <li>Лидер NBA по подборам (2021)</li>
+        <li>Самый прогрессирующий игрок (2013)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Кливленд Кавальерс -->
+  <div class="modal-bg" id="modal-mitchell">
+    <div class="modal">
+      <span class="close" onclick="closeModal('mitchell')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1628378.png">
+      <h1>Донован Митчелл</h1>
+      <p><strong>Команда:</strong> Кливленд Кавальерс</p>
+      <p><strong>Позиция:</strong> Разыгрывающий защитник</p>
+      <p><strong>Рост:</strong> 185 см</p>
+      <p><strong>Вес:</strong> 98 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Донован Митчелл — американский профессиональный баскетболист, известный своей способностью забивать и лидерскими качествами. Был выбран под 13-м номером на драфте 2017 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>4-кратный участник Матча всех звёзд</li>
+        <li>Победитель конкурса слэм-данков (2018)</li>
+        <li>Новичок года по версии NBA (2018)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-garland">
+    <div class="modal">
+      <span class="close" onclick="closeModal('garland')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1629636.png">
+      <h1>Дариус Гарленд</h1>
+      <p><strong>Команда:</strong> Кливленд Кавальерс</p>
+      <p><strong>Позиция:</strong> Разыгрывающий защитник</p>
+      <p><strong>Рост:</strong> 185 см</p>
+      <p><strong>Вес:</strong> 87 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Дариус Гарленд — американский профессиональный баскетболист, известный своей скоростью, дриблингом и точными передачами. Был выбран под 5-м номером на драфте 2019 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник Матча всех звёзд (2022)</li>
+        <li>Лидер Кавальерс по передачам</li>
+        <li>Участник сборной новичков NBA</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-mobley">
+    <div class="modal">
+      <span class="close" onclick="closeModal('mobley')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1630596.png">
+      <h1>Эван Мобли</h1>
+      <p><strong>Команда:</strong> Кливленд Кавальерс</p>
+      <p><strong>Позиция:</strong> Тяжелый форвард / Центровой</p>
+      <p><strong>Рост:</strong> 211 см</p>
+      <p><strong>Вес:</strong> 98 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Эван Мобли — американский профессиональный баскетболист, известный своей защитной игрой и универсальностью. Был выбран под 3-м номером на драфте 2021 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник сборной новичков NBA</li>
+        <li>Лучший защитный игрок года среди новичков</li>
+        <li>Чемпион Pac-12 (2021)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Детройт Пистонс -->
+  <div class="modal-bg" id="modal-cunningham">
+    <div class="modal">
+      <span class="close" onclick="closeModal('cunningham')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1630595.png">
+      <h1>Кейд Каннингем</h1>
+      <p><strong>Команда:</strong> Детройт Пистонс</p>
+      <p><strong>Позиция:</strong> Разыгрывающий защитник</p>
+      <p><strong>Рост:</strong> 198 см</p>
+      <p><strong>Вес:</strong> 100 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Кейд Каннингем — американский профессиональный баскетболист, выбранный под первым номером на драфте 2021 года. Известен своей универсальностью и баскетбольным IQ.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Первый номер драфта NBA 2021</li>
+        <li>Участник сборной новичков NBA</li>
+        <li>Приз имени Нейсмита лучшему игроку года среди студентов (2021)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-ivey">
+    <div class="modal">
+      <span class="close" onclick="closeModal('ivey')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631093.png">
+      <h1>Джейден Айви</h1>
+      <p><strong>Команда:</strong> Детройт Пистонс</p>
+      <p><strong>Позиция:</strong> Атакующий защитник</p>
+      <p><strong>Рост:</strong> 193 см</p>
+      <p><strong>Вес:</strong> 88 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Джейден Айви — американский профессиональный баскетболист, известный своей скоростью и атлетизмом. Был выбран под 5-м номером на драфте 2022 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник сборной новичков NBA</li>
+        <li>Чемпион NCAA (2022)</li>
+        <li>Лучший шестой игрок Big Ten (2022)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-duren">
+    <div class="modal">
+      <span class="close" onclick="closeModal('duren')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631105.png">
+      <h1>Джален Дьюрен</h1>
+      <p><strong>Команда:</strong> Детройт Пистонс</p>
+      <p><strong>Позиция:</strong> Центровой</p>
+      <p><strong>Рост:</strong> 211 см</p>
+      <p><strong>Вес:</strong> 113 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Джален Дьюрен — американский профессиональный баскетболист, известный своей физической силой и игрой в краске. Был выбран под 13-м номером на драфте 2022 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник сборной новичков NBA</li>
+        <li>Самый молодой игрок в истории NBA</li>
+        <li>Чемпион AAC (2022)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Индиана Пэйсерс -->
+  <div class="modal-bg" id="modal-haliburton">
+    <div class="modal">
+      <span class="close" onclick="closeModal('haliburton')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1630169.png">
+      <h1>Тайрис Халибертон</h1>
+      <p><strong>Команда:</strong> Индиана Пэйсерс</p>
+      <p><strong>Позиция:</strong> Разыгрывающий защитник</p>
+      <p><strong>Рост:</strong> 196 см</p>
+      <p><strong>Вес:</strong> 84 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Тайрис Халибертон — американский профессиональный баскетболист, известный своей игровым видением и точными передачами. Был выбран под 12-м номером на драфте 2020 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник Матча всех звёзд (2023, 2024)</li>
+        <li>Лидер NBA по передачам (2024)</li>
+        <li>Участник сборной новичков NBA</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-turner">
+    <div class="modal">
+      <span class="close" onclick="closeModal('turner')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1626167.png">
+      <h1>Майлз Тёрнер</h1>
+      <p><strong>Команда:</strong> Индиана Пэйсерс</p>
+      <p><strong>Позиция:</strong> Центровой</p>
+      <p><strong>Рост:</strong> 211 см</p>
+      <p><strong>Вес:</strong> 113 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Майлз Тёрнер — американский профессиональный баскетболист, известный своей защитной игрой и блок-шотами. Был выбран под 11-м номером на драфте 2015 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Лидер NBA по блок-шотам (2019, 2021)</li>
+        <li>Участник сборной новичков NBA</li>
+        <li>Чемпион мира среди юношей (2014)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-mathurin">
+    <div class="modal">
+      <span class="close" onclick="closeModal('mathurin')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631097.png">
+      <h1>Беннедикт Матюрин</h1>
+      <p><strong>Команда:</strong> Индиана Пэйсерс</p>
+      <p><strong>Позиция:</strong> Атакующий защитник</p>
+      <p><strong>Рост:</strong> 196 см</p>
+      <p><strong>Вес:</strong> 95 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Беннедикт Матюрин — канадский профессиональный баскетболист, известный своей агрессивной атакой и точным броском. Был выбран под 6-м номером на драфте 2022 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник сборной новичков NBA</li>
+        <li>Лучший шестой игрок Pac-12 (2022)</li>
+        <li>Чемпион Pac-12 (2022)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Милуоки Бакс -->
+  <div class="modal-bg" id="modal-antetokounmpo">
+    <div class="modal">
+      <span class="close" onclick="closeModal('antetokounmpo')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203507.png">
+      <h1>Яннис Адетокунбо</h1>
+      <p><strong>Команда:</strong> Милуоки Бакс</p>
+      <p><strong>Позиция:</strong> Тяжелый форвард</p>
+      <p><strong>Рост:</strong> 211 см</p>
+      <p><strong>Вес:</strong> 110 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Яннис Адетокунбо — греческий профессиональный баскетболист нигерийского происхождения, известный как "Греческий Фри". Один из самых доминирующих игроков современности.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Чемпион NBA (2021)</li>
+        <li>2-кратный MVP регулярного сезона</li>
+        <li>Финальный MVP (2021)</li>
+        <li>7-кратный участник Матча всех звёзд</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-lillard">
+    <div class="modal">
+      <span class="close" onclick="closeModal('lillard')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203081.png">
+      <h1>Дамиан Лиллард</h1>
+      <p><strong>Команда:</strong> Милуоки Бакс</p>
+      <p><strong>Позиция:</strong> Разыгрывающий защитник</p>
+      <p><strong>Рост:</strong> 188 см</p>
+      <p><strong>Вес:</strong> 88 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Дамиан Лиллард — американский профессиональный баскетболист, известный своими дальними бросками и лидерскими качествами. Был выбран под 6-м номером на драфте 2012 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>7-кратный участник Матча всех звёзд</li>
+        <li>Новичок года (2013)</li>
+        <li>Олимпийский чемпион (2020)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-middleton">
+    <div class="modal">
+      <span class="close" onclick="closeModal('middleton')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203114.png">
+      <h1>Крис Миддлтон</h1>
+      <p><strong>Команда:</strong> Милуоки Бакс</p>
+      <p><strong>Позиция:</strong> Лёгкий форвард</p>
+      <p><strong>Рост:</strong> 201 см</p>
+      <p><strong>Вес:</strong> 101 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Крис Миддлтон — американский профессиональный баскетболист, известный своей надежной игрой на обеих сторонах площадки. Был выбран под 39-м номером на драфте 2012 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Чемпион NBA (2021)</li>
+        <li>3-кратный участник Матча всех звёзд</li>
+        <li>Олимпийский чемпион (2020)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Миннесота Тимбервулвз -->
+  <div class="modal-bg" id="modal-edwards">
+    <div class="modal">
+      <span class="close" onclick="closeModal('edwards')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1630162.png">
+      <h1>Энтони Эдвардс</h1>
+      <p><strong>Команда:</strong> Миннесота Тимбервулвз</p>
+      <p><strong>Позиция:</strong> Атакующий защитник</p>
+      <p><strong>Рост:</strong> 193 см</p>
+      <p><strong>Вес:</strong> 102 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Энтони Эдвардс — американский профессиональный баскетболист, выбранный под первым номером на драфте 2020 года. Известен своей атлетичностью и способностью забивать.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Первый номер драфта NBA 2020</li>
+        <li>2-кратный участник Матча всех звёзд</li>
+        <li>Участник сборной новичков NBA</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-towns">
+    <div class="modal">
+      <span class="close" onclick="closeModal('towns')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1626157.png">
+      <h1>Карл-Энтони Таунс</h1>
+      <p><strong>Команда:</strong> Миннесота Тимбервулвз</p>
+      <p><strong>Позиция:</strong> Центровой / Тяжелый форвард</p>
+      <p><strong>Рост:</strong> 211 см</p>
+      <p><strong>Вес:</strong> 112 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Карл-Энтони Таунс — американский профессиональный баскетболист, известный своей уникальной комбинацией размера и навыков броска. Был выбран под 1-м номером на драфте 2015 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>3-кратный участник Матча всех звёзд</li>
+        <li>Новичок года (2016)</li>
+        <li>Чемпион Доминиканской Республики (2011)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-gobert">
+    <div class="modal">
+      <span class="close" onclick="closeModal('gobert')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203497.png">
+      <h1>Руди Гобер</h1>
+      <p><strong>Команда:</strong> Миннесота Тимбервулвз</p>
+      <p><strong>Позиция:</strong> Центровой</p>
+      <p><strong>Рост:</strong> 216 см</p>
+      <p><strong>Вес:</strong> 111 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Руди Гобер — французский профессиональный баскетболист, известный своей выдающейся защитной игрой и блок-шотами. Был выбран под 27-м номером на драфте 2013 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>3-кратный лучший защитный игрок года</li>
+        <li>3-кратный участник Матча всех звёзд</li>
+        <li>Серебряный призёр Олимпийских игр (2020)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Юта Джаз -->
+  <div class="modal-bg" id="modal-markkanen">
+    <div class="modal">
+      <span class="close" onclick="closeModal('markkanen')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1628374.png">
+      <h1>Лаури Маркканен</h1>
+      <p><strong>Команда:</strong> Юта Джаз</p>
+      <p><strong>Позиция:</strong> Тяжелый форвард</p>
+      <p><strong>Рост:</strong> 213 см</p>
+      <p><strong>Вес:</strong> 109 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Лаури Маркканен — финский профессиональный баскетболист, известный своим точным броском и игрой на периметре для своего роста. Был выбран под 7-м номером на драфте 2017 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник Матча всех звёзд (2023)</li>
+        <li>Самый прогрессирующий игрок NBA (2023)</li>
+        <li>Участник сборной новичков NBA</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-clarkson">
+    <div class="modal">
+      <span class="close" onclick="closeModal('clarkson')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203903.png">
+      <h1>Джордан Кларксон</h1>
+      <p><strong>Команда:</strong> Юта Джаз</p>
+      <p><strong>Позиция:</strong> Атакующий защитник</p>
+      <p><strong>Рост:</strong> 193 см</p>
+      <p><strong>Вес:</strong> 88 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Джордан Кларксон — американский профессиональный баскетболист, известный своей способностью забивать с любой позиции. Был выбран под 46-м номером на драфте 2014 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Лучший шестой игрок года (2021)</li>
+        <li>Чемпион NBA (2020)</li>
+        <li>Участник сборной новичков NBA</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-sexton">
+    <div class="modal">
+      <span class="close" onclick="closeModal('sexton')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1629012.png">
+      <h1>Коллин Секстон</h1>
+      <p><strong>Команда:</strong> Юта Джаз</p>
+      <p><strong>Позиция:</strong> Разыгрывающий защитник</p>
+      <p><strong>Рост:</strong> 185 см</p>
+      <p><strong>Вес:</strong> 86 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Коллин Секстон — американский профессиональный баскетболист, известный своей скоростью и способностью забивать. Был выбран под 8-м номером на драфте 2018 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник сборной новичков NBA</li>
+        <li>Лидер новичков по очкам (2019)</li>
+        <li>Чемпион SEC (2018)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Голден Стэйт Уорриорз -->
+  <div class="modal-bg" id="modal-curry">
+    <div class="modal">
+      <span class="close" onclick="closeModal('curry')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/201939.png">
+      <h1>Стивен Карри</h1>
+      <p><strong>Команда:</strong> Голден Стэйт Уорриорз</p>
+      <p><strong>Позиция:</strong> Разыгрывающий защитник</p>
+      <p><strong>Рост:</strong> 188 см</p>
+      <p><strong>Вес:</strong> 84 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Стивен Карри — американский профессиональный баскетболист, известный как один из величайших снайперов в истории баскетбола. Изменил игру своим трёхочковым броском.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>4-кратный чемпион NBA</li>
+        <li>2-кратный MVP регулярного сезона</li>
+        <li>Финальный MVP (2022)</li>
+        <li>10-кратный участник Матча всех звёзд</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-thompson">
+    <div class="modal">
+      <span class="close" onclick="closeModal('thompson')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/202691.png">
+      <h1>Клей Томпсон</h1>
+      <p><strong>Команда:</strong> Голден Стэйт Уорриорз</p>
+      <p><strong>Позиция:</strong> Атакующий защитник</p>
+      <p><strong>Рост:</strong> 198 см</p>
+      <p><strong>Вес:</strong> 100 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Клей Томпсон — американский профессиональный баскетболист, известный своим точным броском и защитной игрой. Был выбран под 11-м номером на драфте 2011 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>4-кратный чемпион NBA</li>
+        <li>5-кратный участник Матча всех звёзд</li>
+        <li>Олимпийский чемпион (2016)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-green">
+    <div class="modal">
+      <span class="close" onclick="closeModal('green')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203110.png">
+      <h1>Дрэймонд Грин</h1>
+      <p><strong>Команда:</strong> Голден Стэйт Уорриорз</p>
+      <p><strong>Позиция:</strong> Тяжелый форвард</p>
+      <p><strong>Рост:</strong> 198 см</p>
+      <p><strong>Вес:</strong> 104 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Дрэймонд Грин — американский профессиональный баскетболист, известный своей защитной игрой, передачами и лидерскими качествами. Был выбран под 35-м номером на драфте 2012 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>4-кратный чемпион NBA</li>
+        <li>Лучший защитный игрок года (2017)</li>
+        <li>4-кратный участник Матча всех звёзд</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Лос-Анджелес Лейкерс -->
+  <div class="modal-bg" id="modal-james">
+    <div class="modal">
+      <span class="close" onclick="closeModal('james')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png">
+      <h1>Леброн Джеймс</h1>
+      <p><strong>Команда:</strong> Лос-Анджелес Лейкерс</p>
+      <p><strong>Позиция:</strong> Лёгкий форвард / Атакующий защитник</p>
+      <p><strong>Рост:</strong> 206 см</p>
+      <p><strong>Вес:</strong> 113 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Леброн Джеймс — американский профессиональный баскетболист, считается одним из величайших игроков в истории баскетбола. Лидер по количеству набранных очков в истории NBA.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>4-кратный чемпион NBA</li>
+        <li>4-кратный MVP регулярного сезона</li>
+        <li>4-кратный финальный MVP</li>
+        <li>20-кратный участник Матча всех звёзд</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-davis">
+    <div class="modal">
+      <span class="close" onclick="closeModal('davis')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/203076.png">
+      <h1>Энтони Дэвис</h1>
+      <p><strong>Команда:</strong> Лос-Анджелес Лейкерс</p>
+      <p><strong>Позиция:</strong> Центровой / Тяжелый форвард</p>
+      <p><strong>Рост:</strong> 208 см</p>
+      <p><strong>Вес:</strong> 115 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Энтони Дэвис — американский профессиональный баскетболист, известный своей универсальностью и защитной игрой. Был выбран под 1-м номером на драфте 2012 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Чемпион NBA (2020)</li>
+        <li>8-кратный участник Матча всех звёзд</li>
+        <li>Олимпийский чемпион (2012)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-russell">
+    <div class="modal">
+      <span class="close" onclick="closeModal('russell')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1626156.png">
+      <h1>Д'Анджело Расселл</h1>
+      <p><strong>Команда:</strong> Лос-Анджелес Лейкерс</p>
+      <p><strong>Позиция:</strong> Разыгрывающий защитник</p>
+      <p><strong>Рост:</strong> 193 см</p>
+      <p><strong>Вес:</strong> 88 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Д'Анджело Расселл — американский профессиональный баскетболист, известный своей игрой в pick-and-roll и точным броском. Был выбран под 2-м номером на драфте 2015 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник Матча всех звёзд (2019)</li>
+        <li>Участник сборной новичков NBA</li>
+        <li>Чемпион Big Ten (2015)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Оклахома-Сити Тандер -->
+  <div class="modal-bg" id="modal-gilgeous">
+    <div class="modal">
+      <span class="close" onclick="closeModal('gilgeous')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1628983.png">
+      <h1>Шей Гилджеус-Александр</h1>
+      <p><strong>Команда:</strong> Оклахома-Сити Тандер</p>
+      <p><strong>Позиция:</strong> Разыгрывающий защитник</p>
+      <p><strong>Рост:</strong> 198 см</p>
+      <p><strong>Вес:</strong> 88 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Шей Гилджеус-Александр — канадский профессиональный баскетболист, известный своей способностью проникать в краску и забивать. Был выбран под 11-м номером на драфте 2018 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>3-кратный участник Матча всех звёзд</li>
+        <li>Включён в первую сборную всех звёзд (2023)</li>
+        <li>Участник сборной новичков NBA</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-holmgren">
+    <div class="modal">
+      <span class="close" onclick="closeModal('holmgren')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631096.png">
+      <h1>Чет Холмгрен</h1>
+      <p><strong>Команда:</strong> Оклахома-Сити Тандер</p>
+      <p><strong>Позиция:</strong> Центровой</p>
+      <p><strong>Рост:</strong> 216 см</p>
+      <p><strong>Вес:</strong> 94 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Чет Холмгрен — американский профессиональный баскетболист, известный своей уникальной комбинацией роста и навыков броска. Был выбран под 2-м номером на драфте 2022 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник сборной новичков NBA</li>
+        <li>Приз Нейсмита лучшему игроку года среди студентов (2022)</li>
+        <li>Чемпион NCAA (2022)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-williams">
+    <div class="modal">
+      <span class="close" onclick="closeModal('williams')">×</span>
+      <img src="https://cdn.nba.com/headshots/nba/latest/1040x760/1631114.png">
+      <h1>Джейлен Уильямс</h1>
+      <p><strong>Команда:</strong> Оклахома-Сити Тандер</p>
+      <p><strong>Позиция:</strong> Атакующий защитник</p>
+      <p><strong>Рост:</strong> 198 см</p>
+      <p><strong>Вес:</strong> 95 кг</p>
+      <h2>Краткая биография</h2>
+      <p>Джейлен Уильямс — американский профессиональный баскетболист, известный своей универсальностью и способностью играть на нескольких позициях. Был выбран под 12-м номером на драфте 2022 года.</p>
+      <h2>Достижения</h2>
+      <ul>
+        <li>Участник сборной новичков NBA</li>
+        <li>Лучший новичок месяца (декабрь 2022)</li>
+        <li>Чемпион WCC (2022)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- статистика -->
+  <section id="stats">
+    <h2>Статистика NBA</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>Лидеры по очкам</h3>
+        <p>Леброн Джеймс</p>
+        <p>38,652 очков</p>
+      </div>
+      <div class="stat-card">
+        <h3>Лидеры по подборам</h3>
+        <p>Уилт Чемберлен</p>
+        <p>23,924 подбора</p>
+      </div>
+      <div class="stat-card">
+        <h3>Лидеры по передачам</h3>
+        <p>Джон Стоктон</p>
+        <p>15,806 передач</p>
+      </div>
+    </div>
+  </section>
+
+  <!--новости -->
+  <section id="news">
+    <h2>Последние новости</h2>
+    <div class="news">
+      <article>
+        <h3>Леброн Джеймс побил рекорд по набранным очкам</h3>
+        <p>Легендарный игрок Los Angeles Lakers установил новый рекорд NBA по количеству набранных очков за всю историю лиги.</p>
+      </article>
+      <article>
+        <h3>Яннис Адетокунбо продлил контракт с Милуоки Бакс</h3>
+        <p>Звездный тяжелый форвард подписал новый многолетний контракт с командой, в которой стал чемпионом в 2021 году.</p>
+      </article>
+      <article>
+        <h3>Стивен Карри вернулся после травмы</h3>
+        <p>Лидер Golden State Warriors снова на паркете после восстановления и готов помочь команде в плей-офф.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- видео -->
+  <section id="video">
+    <h2>Лучшие моменты NBA</h2>
+    <div class="video-container">
+      <iframe src="https://www.youtube.com/embed/Cw6CfA7sNNo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  </section>
+</main>
+
+
+<button id="topBtn">↑</button>
+
+<script>
+function openModal(id){ document.getElementById('modal-' + id).classList.add('show'); }
+function closeModal(id){ document.getElementById('modal-' + id).classList.remove('show'); }
+
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click', e=>{ if(e.target===bg) bg.classList.remove('show'); });
+});
+
+
+const teamButtons = document.querySelectorAll('.team-btn');
+teamButtons.forEach(button => {
+  button.addEventListener('click', function() {
+    
+    teamButtons.forEach(btn => btn.classList.remove('active'));
+    
+    this.classList.add('active');
+    
+    const team = this.getAttribute('data-team');
+    filterTeam(team);
+    changeBackground(team);
+  });
+});
+
+function filterTeam(team){
+  document.querySelectorAll('.player').forEach(player=>{
+    if(team==='all' || player.getAttribute('data-team')===team) {
+      player.style.display='block';
+    } else {
+      player.style.display='none';
+    }
+  });
+}
+
+
+// Кнопка наверх
+const topBtn=document.getElementById("topBtn");
+window.onscroll=()=>{ if(document.documentElement.scrollTop>400) topBtn.style.display="block"; else topBtn.style.display="none"; }
+topBtn.onclick=()=>window.scrollTo({top:0, behavior:'smooth'});
+</script>
+
+</body>
+</html>
